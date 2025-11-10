@@ -24,3 +24,9 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: https://cognito-idp.<region>.amazonaws.com/<userPoolId>
+
+logging:
+  level:
+    com.moveo.ha.service: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: OFF
