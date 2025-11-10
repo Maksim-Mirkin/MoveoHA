@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: moveo-ha
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/moveo_ha_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: false
+
+  liquibase:
+    change-log: classpath:db/changelog/master.xml
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://cognito-idp.<region>.amazonaws.com/<userPoolId>
