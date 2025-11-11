@@ -1,3 +1,5 @@
+See deployment suggestion in [Deployment.md](Deployment.md)
+
 # Spring Boot Application
 
 ## 🧰 Stack
