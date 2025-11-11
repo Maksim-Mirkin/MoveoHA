@@ -1,4 +1,4 @@
-package com.moveo.ha.project;
+package com.moveo.ha;
 
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
@@ -23,19 +23,24 @@ public class WebMvcTestSecurity {
     SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
-
+                .anonymous(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/v1/projects/**").hasAnyRole("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/projects", "/api/v1/projects/*").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/projects").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/projects/*").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/projects/*").hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.GET, "/api/v1/tasks/**").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/tasks").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/tasks/*").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/tasks/*").hasRole("ADMIN")
+
                         .anyRequest().authenticated()
                 )
-
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                         .accessDeniedHandler((req, res, e) -> res.sendError(HttpStatus.FORBIDDEN.value()))
                 )
-
                 .build();
     }
 }

@@ -5,8 +5,11 @@ import com.moveo.ha.dto.error.InternalServerExceptionDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -102,7 +105,6 @@ public class MoveoHAExceptionHandler {
             HandlerMethod method,
             HttpServletRequest request
     ) {
-        // 1) Log verbose developer info
         log.warn("Validation failed at {}.{} path={} errors={}",
                 method.getMethod().getDeclaringClass().getSimpleName(),
                 method.getMethod().getName(),
@@ -110,7 +112,6 @@ public class MoveoHAExceptionHandler {
                 e.getBindingResult()
         );
 
-        // 2) Build client-friendly body
         var body = new LinkedHashMap<String, Object>();
         body.put("status", 400);
         body.put("error", "Bad Request");
@@ -194,6 +195,87 @@ public class MoveoHAExceptionHandler {
         dto.setException(e.getClass().getSimpleName());
         return ResponseEntity.internalServerError().body(dto);
     }
+
+    /**
+     * Handle PG-ENUM cast failure → return 500 with user-friendly message.
+     * <p>
+     * This appears when PostgreSQL column type = task_status ENUM
+     * but Hibernate binds value as VARCHAR.
+     * <p>
+     * Client gets a short clear message, SQL details kept in logs only.
+     */
+    @ExceptionHandler(InvalidDataAccessResourceUsageException.class)
+    public ResponseEntity<ExceptionDTO> handleInvalidDataAccess(
+            InvalidDataAccessResourceUsageException e,
+            HandlerMethod method,
+            HttpServletRequest request
+    ) {
+        String msg = "Server misconfiguration: enum mapping for Task.status is invalid. Please contact support.";
+
+        if (e.getMessage() != null &&
+                e.getMessage().contains("is of type task_status but expression is of type character varying")) {
+            msg = "Internal server error: task status mapping is misconfigured. " +
+                    "The server tried to save a status value as text instead of the database enum.";
+        }
+
+        var dto = buildExceptionDTO(new RuntimeException(msg), method, request, HttpStatus.INTERNAL_SERVER_ERROR);
+        log.error("[500] {} {} @ {}.{} -> {}", request.getMethod(), request.getRequestURI(),
+                dto.getController(), dto.getControllerMethod(), msg, e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(dto);
+    }
+
+    /**
+     * Handle any other DB integrity violations (unique, FK, CHECK, etc.) → 400.
+     * <p>
+     * Client receives a neutral BAD_REQUEST description
+     * without exposing DB/SQL internals.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ExceptionDTO> handleDataIntegrityViolation(
+            DataIntegrityViolationException e,
+            HandlerMethod method,
+            HttpServletRequest request
+    ) {
+        String userMsg = "Bad request: one of the fields violates database constraints.";
+        var dto = buildExceptionDTO(new IllegalArgumentException(userMsg), method, request, HttpStatus.BAD_REQUEST);
+        log.warn("[400] {} {} @ {}.{} -> {} ({})", request.getMethod(), request.getRequestURI(),
+                dto.getController(), dto.getControllerMethod(), userMsg, e.getMessage());
+        return ResponseEntity.badRequest().body(dto);
+    }
+
+    /**
+     * Handle JSON parse errors (e.g. invalid enum values) → 400 BAD_REQUEST.
+     * <p>
+     * Typical example:
+     * "Cannot deserialize value of type TaskStatus from String 'TODOasdasd'"
+     * The client gets a user-friendly message instead of raw Jackson trace.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ExceptionDTO> handleJsonParseError(
+            HttpMessageNotReadableException e,
+            HandlerMethod method,
+            HttpServletRequest request
+    ) {
+        String message = "Invalid request payload.";
+
+        if (e.getMessage() != null &&
+                e.getMessage().contains("Cannot deserialize value of type") &&
+                e.getMessage().contains("TaskStatus")) {
+            message = "Invalid task status. Accepted values: TODO, IN_PROGRESS, DONE.";
+        }
+
+        var dto = buildExceptionDTO(
+                new IllegalArgumentException(message),
+                method,
+                request,
+                HttpStatus.BAD_REQUEST
+        );
+
+        log.warn("[400] {} {} @ {}.{} -> {}", request.getMethod(), request.getRequestURI(),
+                dto.getController(), dto.getControllerMethod(), message);
+        return ResponseEntity.badRequest().body(dto);
+    }
+
 
     /**
      * Extract {@link HttpStatus} from {@link ResponseStatus} annotation that is present on custom exceptions.

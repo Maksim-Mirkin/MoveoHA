@@ -41,7 +41,7 @@ class ProjectServiceImplTest {
                 .createdAt(Instant.parse("2025-11-10T11:00:00Z"))
                 .updatedAt(Instant.parse("2025-11-10T11:00:00Z"))
                 .build();
-        var dto = new ProjectResponseDTO(1L, "N", "D", saved.getCreatedAt(), saved.getUpdatedAt());
+        var dto = new ProjectResponseDTO(1L, "N", "D", saved.getCreatedAt(), saved.getUpdatedAt(), List.of());
 
         when(mapper.toEntity(req)).thenReturn(entityToSave);
         when(repository.save(entityToSave)).thenReturn(saved);
@@ -61,7 +61,7 @@ class ProjectServiceImplTest {
         var req = new ProjectRequestDTO("New", "Desc");
         var existing = Project.builder().id(id).name("Old").description("OldD").build();
         var updated = Project.builder().id(id).name("New").description("Desc").build();
-        var dto = new ProjectResponseDTO(id, "New", "Desc", null, null);
+        var dto = new ProjectResponseDTO(id, "New", "Desc", null, null, List.of());
 
         when(repository.findById(id)).thenReturn(Optional.of(existing));
         when(repository.save(existing)).thenReturn(updated);
@@ -86,7 +86,7 @@ class ProjectServiceImplTest {
     @Test
     void getProjectById_ok() {
         var p = Project.builder().id(2L).name("N").description("D").build();
-        var dto = new ProjectResponseDTO(2L, "N", "D", null, null);
+        var dto = new ProjectResponseDTO(2L, "N", "D", null, null, List.of());
 
         when(repository.findById(2L)).thenReturn(Optional.of(p));
         when(mapper.toResponse(p)).thenReturn(dto);
@@ -105,16 +105,14 @@ class ProjectServiceImplTest {
 
     @Test
     void getPageOfProjects_ok_withSortMeta() {
-        // page request
         var pageable = PageRequest.of(0, 2, Sort.by(Sort.Order.asc("name")));
 
-        // page data
         var e1 = Project.builder().id(1L).name("A").description("D1").build();
         var e2 = Project.builder().id(2L).name("B").description("D2").build();
         var page = new PageImpl<>(List.of(e1, e2), pageable, 5);
 
-        var d1 = new ProjectResponseDTO(1L, "A", "D1", null, null);
-        var d2 = new ProjectResponseDTO(2L, "B", "D2", null, null);
+        var d1 = new ProjectResponseDTO(1L, "A", "D1", null, null, List.of());
+        var d2 = new ProjectResponseDTO(2L, "B", "D2", null, null, List.of());
 
         when(repository.findAll(pageable)).thenReturn(page);
         when(mapper.toResponse(e1)).thenReturn(d1);
@@ -135,10 +133,8 @@ class ProjectServiceImplTest {
 
     @Test
     void getPageOfProjects_outOfRange_throwsBadRequest() {
-        // emulate totalPages = 3, asked page = 5
-        var asked = PageRequest.of(5, 2, Sort.by("id")); // pageNumber=5
-        // Repository всё равно вернёт пустую страницу здесь (мы подставим meta так, чтобы totalPages=3)
-        var emptyPage = new PageImpl<Project>(List.of(), asked, 6); // 6 elems @size=2 -> totalPages=3
+        var asked = PageRequest.of(5, 2, Sort.by("id"));
+        var emptyPage = new PageImpl<Project>(List.of(), asked, 6); // -> totalPages=3
 
         when(repository.findAll(asked)).thenReturn(emptyPage);
 
@@ -151,7 +147,7 @@ class ProjectServiceImplTest {
     void deleteProjectById_ok() {
         var id = 7L;
         var e = Project.builder().id(id).name("N").description("D").build();
-        var dto = new ProjectResponseDTO(id, "N", "D", null, null);
+        var dto = new ProjectResponseDTO(id, "N", "D", null, null, List.of());
 
         when(repository.findById(id)).thenReturn(Optional.of(e));
         when(mapper.toResponse(e)).thenReturn(dto);
@@ -170,4 +166,3 @@ class ProjectServiceImplTest {
                 .hasMessageContaining("Project 77 not found");
     }
 }
-

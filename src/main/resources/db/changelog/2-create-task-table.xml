@@ -6,10 +6,8 @@
           http://www.liquibase.org/xml/ns/dbchangelog
           https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.15.xsd">
 
-    <!-- 1) Создаём тип ENUM task_status, если его ещё нет -->
     <changeSet id="0002-1-create-enum-task-status" author="maksim">
         <preConditions onFail="MARK_RAN">
-            <!-- Если типа нет (COUNT=0), выполняем changeset -->
             <sqlCheck expectedResult="0">
                 SELECT COUNT(*) FROM pg_type WHERE typname = 'task_status'
             </sqlCheck>
@@ -29,7 +27,6 @@
         </rollback>
     </changeSet>
 
-    <!-- 2) Таблица tasks c использованием task_status -->
     <changeSet id="2-create-task-table" author="maksim">
         <createTable tableName="tasks">
             <column name="id" type="BIGINT" autoIncrement="true">
@@ -46,7 +43,6 @@
 
             <column name="description" type="VARCHAR(2000)"/>
 
-            <!-- статус как PostgreSQL ENUM -->
             <column name="status" type="task_status">
                 <constraints nullable="false"/>
             </column>

@@ -1,6 +1,7 @@
 package com.moveo.ha.project;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.moveo.ha.WebMvcTestSecurity;
 import com.moveo.ha.controller.ProjectController;
 import com.moveo.ha.dto.project.ProjectListDTO;
 import com.moveo.ha.dto.project.ProjectRequestDTO;
@@ -48,7 +49,7 @@ class ProjectControllerTest {
     @WithMockUser(roles = "ADMIN")
     void createProject_created201_andLocationHeader() throws Exception {
         var req = new ProjectRequestDTO("Website Redesign", "Marketing site redesign for Q4");
-        var dto = new ProjectResponseDTO(1L, req.name(), req.description(), null, null);
+        var dto = new ProjectResponseDTO(1L, req.name(), req.description(), null, null, List.of());
 
         when(projectService.createProject(ArgumentMatchers.any())).thenReturn(dto);
 
@@ -64,7 +65,7 @@ class ProjectControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void createProject_badRequest_whenValidationFails() throws Exception {
-        var req = new ProjectRequestDTO("", ""); // invalid (NotBlank)
+        var req = new ProjectRequestDTO("", "");
 
         mvc.perform(post("/api/v1/projects")
                         .with(csrf())
@@ -89,7 +90,6 @@ class ProjectControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-        // not ADMIN
     void createProject_forbidden_403() throws Exception {
         var req = new ProjectRequestDTO("N", "D");
 
@@ -106,7 +106,7 @@ class ProjectControllerTest {
     @WithMockUser(roles = "ADMIN")
     void updateProject_ok200() throws Exception {
         var req = new ProjectRequestDTO("Website Rebrand", "Scope updated");
-        var dto = new ProjectResponseDTO(5L, req.name(), req.description(), null, null);
+        var dto = new ProjectResponseDTO(5L, req.name(), req.description(), null, null, List.of());
         when(projectService.updateProjectById(eq(5L), any())).thenReturn(dto);
 
         mvc.perform(post("/api/v1/projects/5")
@@ -145,7 +145,6 @@ class ProjectControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-        // not ADMIN
     void updateProject_forbidden_403() throws Exception {
         var req = new ProjectRequestDTO("N", "D");
 
@@ -161,7 +160,7 @@ class ProjectControllerTest {
     @Test
     @WithMockUser(roles = {"ADMIN", "USER"})
     void getProjectById_ok200() throws Exception {
-        var dto = new ProjectResponseDTO(10L, "N", "D", null, null);
+        var dto = new ProjectResponseDTO(10L, "N", "D", null, null, List.of());
         when(projectService.getProjectById(10L)).thenReturn(dto);
 
         mvc.perform(get("/api/v1/projects/10"))
@@ -187,7 +186,6 @@ class ProjectControllerTest {
 
     @Test
     @WithMockUser(roles = "GUEST")
-        // lacks ADMIN/USER
     void getProjectById_forbidden_403() throws Exception {
         mvc.perform(get("/api/v1/projects/1"))
                 .andExpect(status().isForbidden());
@@ -208,8 +206,8 @@ class ProjectControllerTest {
                 .sortBy("id")
                 .sortDir("asc")
                 .projects(List.of(
-                        new ProjectResponseDTO(1L, "A", "DA", null, null),
-                        new ProjectResponseDTO(2L, "B", "DB", null, null)
+                        new ProjectResponseDTO(1L, "A", "DA", null, null, List.of()),
+                        new ProjectResponseDTO(2L, "B", "DB", null, null, List.of())
                 ))
                 .build();
 
@@ -286,7 +284,7 @@ class ProjectControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void delete_ok200_returnsSnapshot() throws Exception {
-        var dto = new ProjectResponseDTO(3L, "X", "DX", null, null);
+        var dto = new ProjectResponseDTO(3L, "X", "DX", null, null, List.of());
         when(projectService.deleteProjectById(3L)).thenReturn(dto);
 
         mvc.perform(delete("/api/v1/projects/3").with(csrf()))
@@ -313,7 +311,6 @@ class ProjectControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-        // not ADMIN
     void delete_forbidden_403() throws Exception {
         mvc.perform(delete("/api/v1/projects/1").with(csrf()))
                 .andExpect(status().isForbidden());

@@ -12,6 +12,7 @@ spring:
     hibernate:
       ddl-auto: validate
     properties:
+      hibernate.type.preferred_enum_type: postgres_enum
       hibernate:
         format_sql: true
         show_sql: false
@@ -23,10 +24,22 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: https://cognito-idp.<region>.amazonaws.com/<userPoolId>
+          issuer-uri: https://cognito-idp.eu-north-1.amazonaws.com/eu-north-1_KgMVvBy3a
+
+security:
+  cognito:
+    client-id: 6fqs3j1l6ckgpe1g294mfn6b3b
 
 logging:
   level:
     com.moveo.ha.service: DEBUG
     org.springframework.security: INFO
     org.hibernate.SQL: OFF
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui/index.html

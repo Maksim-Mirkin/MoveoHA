@@ -8,5 +8,6 @@
 
     <include file="1-create-project-table.xml" relativeToChangelogFile="true"/>
     <include file="2-create-task-table.xml" relativeToChangelogFile="true"/>
+    <include file="3-alter-task-and-project-description-not-null.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>
