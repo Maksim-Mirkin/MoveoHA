@@ -3,9 +3,9 @@ spring:
     name: moveo-ha
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/moveo_ha_db
-    username: postgres
-    password: postgres
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:moveo_ha_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -28,7 +28,7 @@ spring:
 
 security:
   cognito:
-    client-id: 6fqs3j1l6ckgpe1g294mfn6b3b
+    client-id: ${COGNITO_CLIENT_ID:default_client_id}
 
 logging:
   level:
@@ -43,3 +43,12 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui/index.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,env
+  endpoint:
+    health:
+      show-details: always
